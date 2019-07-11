@@ -2,12 +2,19 @@ import pandas as pd
 import numpy as np
 from os import walk
 
-def readSliicercsv(filename):
+def readFlowviewcsv(filename):
     df = pd.read_csv(filename,
         index_col = 0,
         header = 2,
-        usecols = [0, 1, 2, 3, 4],
-        names = ['Datetime','sdepth (in)','y (in)','v (ft/s)','Q (MGD)'])
+        usecols = [0, 1, 2, 3],
+        names = ['Datetime','y (in)','v (ft/s)','Q (MGD)'],
+        parse_dates = True,
+        infer_datetime_format = True,
+        dtype = {
+            'y (in)' : np.float64,
+            'v (ft/s)' : np.float64,
+            'Q (MGD)' : np.float64
+        })
     df.index = pd.to_datetime(df.index)
     return(df)
 
@@ -48,18 +55,40 @@ def findRainGage(filename, fmName):
     rg = df.loc[fmName][0]
     return(rg)
 
-def readRaintxt(filename, useColList):
+def constructdtypes(useColList, col_dtypes):
+    dtypes = {}
+    for column, dtype in zip(useColList,col_dtypes):
+        dtypes[column] = dtype
+    return(dtypes)
+
+def readRaintxt(filename, useColList, col_dtypes):
+    dtypes = constructdtypes(
+        useColList = useColList[1:],
+        col_dtypes = col_dtypes)
     df = pd.read_csv(filename,
         sep = '\t',
         usecols = useColList,
-        index_col = 0)
+        index_col = 0,
+        parse_dates = True,
+        infer_datetime_format = True,
+        dtype = dtypes)
     df.index = pd.to_datetime(df.index)
     return(df)
 
 def readFMdetails(filename):
     #column names: 'Rain Gage', 'Diameter', 'Linear Feet', 'Basin Area (Ac)', 'Basin Footprint (in-mi)', 'Total Footage (LF)'
     df = pd.read_csv(filename,
-        index_col=0)
+        index_col=0,
+        dtype = {
+            'Flow Monitor' : 'object',
+            'Rain Gage' : 'object',
+            'Diameter' : np.float64,
+            'Linear Feet' : np.float64,
+            'Basin Area (Ac)' : np.float64,
+            'Bassin Footprint (in-mi)' : np.float64,
+            'Total Footage (LF)' : np.float64
+        })
+    df[df==9999.0] = float('NaN')
     return(df)
 
 # reorganize the data such that the index is time of day, the columns represent different days, and the values are whichever is specified (e.g., Q)
@@ -136,4 +165,3 @@ def readStormData(fmname, flowDir):
         index_col=0)
     sGrossII = dfStorm.loc[:, 'Gross Vol']
     return(dfStorm,sGrossII)
-

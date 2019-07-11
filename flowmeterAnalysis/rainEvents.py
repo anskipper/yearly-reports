@@ -76,14 +76,14 @@ OUTPUTS:
 def stormAnalyzer(dfHourly, date, gagename):
     # find the first value that is on this date and the hourly rain total exceeds 0
     mask = ((dfHourly.index >= date)
-        and (dfHourly.index < date + dt.timedelta(days=1))
-        and (dfHourly.loc[:,gagename] > 0))
+        & (dfHourly.index < date + dt.timedelta(days=1))
+        & (dfHourly.loc[:,gagename].values > 0))
     tStart = dfHourly.index[mask][0]
     # find the time that it stops raining within a 71 hour period
     # this is the EVENT DURATION
     mask = ((dfHourly.index >= tStart)
-        and (dfHourly.index<tStart + dt.timedelta(days=2,hours=23))
-        and (dfHourly.loc[:,gagename] > 0))
+        & (dfHourly.index<tStart + dt.timedelta(days=2,hours=23))
+        & (dfHourly.loc[:,gagename].values > 0))
     dur = basicMath.getTimeDiff(
         date1=dfHourly.index[mask][-1],
         date2=tStart,
