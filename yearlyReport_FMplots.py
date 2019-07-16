@@ -121,3 +121,19 @@ for fmname in stormDict:
             saveDir = saveDir)
 toc = time.process_time()
 print(toc - tic)
+
+issueList = ['BC21', 'BC70A', 'BC30', 'BC32', 'BC38', 'BC44',
+             'BC46', 'BC48','BC50', 'BC51', 'BC52', 'BC53A',
+             'BC58', 'BC71', 'RSPSM', 'BC12']
+
+for fmname in issueList:
+    plotting.cumulativeHist(
+        fmname = fmname, 
+        data = plotting.removeNans(
+            basinDryWeather[fmname]['Weekday']['Net Q']), 
+        nbins = 20,
+        saveDir = saveDir)
+    print(fmname + ' Gross Q = ' +
+    str(basinDryWeather[fmname]['Weekday']['Gross Q'].mean()))
+    print(fmname + ' Net Q = ' +
+    str(basinDryWeather[fmname]['Weekday']['Net Q'].mean()))

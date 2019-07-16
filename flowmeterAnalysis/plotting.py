@@ -141,7 +141,7 @@ def pltDryGrossQ(basinDryWeather,fmname,saveDir = []):
         fmname = fmname,
         data = [grossQ_wkd, grossQ_wke],
         ylabel = 'Q (MGD)',
-        title = 'Net Q',
+        title = 'Gross Q',
         showyticks = True,
         topLim = round(1.5 * max(
             np.quantile(grossQ_wkd,0.95),
@@ -183,7 +183,9 @@ def pltDrydD(basinDryWeather,fmname,saveDir = []):
         ylabel = 'd/D',
         title = 'Dry Capacity',
         showyticks = True,
-        topLim = 1,
+        topLim =  round(1.5 * max(
+            np.quantile(dD_wkd,0.95),
+            np.quantile(dD_wke,0.95)),1),
         bottomLim = 0,
         annotate = False,
         saveDir = saveDir, 
@@ -351,5 +353,36 @@ def plotUpstreamFlows(fmname, basinDryWeather, usfmList, saveDir = []):
         plt.show()
     else:
         saveName = saveDir + '\\' + fmname + '\\' + fmname + '_wUpstream.png'
+        plt.savefig(saveName)
+        plt.close(fig)
+
+def cumulativeHist(fmname, data, nbins, saveDir = []):
+    maxBinEdge = 1.1 * round(data.max(),2)
+    minBinEdge = np.min(1.1 * round(data.min(),2), 0)
+    binEdges = np.linspace(minBinEdge, maxBinEdge, nbins)
+    fig,ax = plt.subplots(figsize = (3,4))
+    cc_hist = ax.hist(x = data,
+                  bins = binEdges,
+                 facecolor = 'xkcd:light grey',
+                 edgecolor = 'xkcd:charcoal',
+                 density = True,
+                 cumulative = True,
+                 align = 'right')
+    ax.yaxis.grid(True, 
+                  linestyle = '-',
+                  which = 'major',
+                  color = 'xkcd:charcoal',
+                  alpha = 0.4)
+    ax.set_xlabel('Net Q (MGD)')
+    ax.set_title(fmname)
+    ax.set_ylabel('% Less Than')
+    for patch, binEdge in zip(cc_hist[2],cc_hist[1][1:]):
+        if binEdge < 0:
+            patch.set_fc(color = 'xkcd:cornflower')
+    plt.tight_layout()
+    if not saveDir:
+        plt.show()
+    else:
+        saveName = saveDir + '\\' + fmname + '\\' + fmname + '_cumulativeHist.png'
         plt.savefig(saveName)
         plt.close(fig)
