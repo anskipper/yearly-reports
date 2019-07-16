@@ -12,7 +12,7 @@ from flowmeterAnalysis import readFiles
 
 ##### SET DIRECTORIES, FILES, ETC. #####
 homeDir = 'P:\\PW-WATER SERVICES\\TECHNICAL SERVICES\\Anna'
-flowDir = homeDir + '\\2018\\Big Creek'
+flowDir = homeDir + '\\2018\\Big Creek Data'
 gageFile = homeDir + '\\2018\\Rain\\FMtoRG.txt'
 dailyFile = homeDir + '\\2018\\Rain\\RG_daily_20180101-20190331.txt'
 hourlyFile = homeDir + '\\2018\\Rain\\RG_hourly_20180101-20190331.txt'
@@ -98,13 +98,15 @@ print(toc - tic)
 ########### WET WEATHER ############
 tic = time.process_time()
 for fmname in basinDryWeather:
-    meanFile = flowDir + '\\' + fmname + '\\' + fmname + '_meanFlows.csv' 
+    meanFile = homeDir + '\\2018\\Big Creek' + '\\' + fmname + '\\' + fmname + '_meanFlows.csv' 
     gageStorms, stormsDict[fmname], systemII[fmname] = flowMonitor.grossII(
         dfFlow = dfFlows[fmname], 
         gagename = dfmDetails.loc[fmname, 'Rain Gage'], 
         dfDaily = dfDaily, 
         dfHourly = dfHourly,
         fmname = fmname, 
+        D = dfmDetails.loc[fmname, 'Diameter'], 
+        dryWeatherDict = basinDryWeather[fmname],
         gageStorms = gageStorms, 
         meanFile = meanFile)
 toc = time.process_time()
@@ -136,8 +138,8 @@ print(toc - tic)
 
 # save basinDryWeather, stormsDict, and systemII using pickle
 saveDir = homeDir + '\\2018\\Python Objects\\'
-saveObjs = [basinDryWeather, stormsDict, systemII]
-filenames = ['basinDryWeather','stormsDict','systemII']
+saveObjs = [basinDryWeather, stormsDict, systemII, gageStorms]
+filenames = ['basinDryWeather','stormsDict','systemII', 'gageStorms']
 
 for saveObj, filename in zip(saveObjs,filenames):
     with open(saveDir + filename + '.pickle','wb') as handle:

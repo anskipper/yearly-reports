@@ -209,7 +209,7 @@ def dryWeather(dfFlow, fmname, dfDailyRain,
             'Gross Diurnal' : df_dryWeekday.mean(axis = 1)
         },
         'Overall' : {
-            'd/D' : dD
+            'd/D Dry' : dD[~np.isnan(dD)]
         }
     }
     return(dryWeatherDict)
@@ -227,16 +227,16 @@ def netDryQ(basinDryWeather,dfUpstream,fmname):
     dryWeatherDict = basinDryWeather[fmname]
     # find the upstream flow monitors
     usfmList = readFiles.findUpstreamFMs(dfUpstream, fmname)
-    dryWeatherDict['Weekday']['Net Q'] = dryWeatherDict['Weekday']['Gross Q']
-    dryWeatherDict['Weekend']['Net Q'] = dryWeatherDict['Weekend']['Gross Q']
-    dryWeatherDict['Weekday']['Net Diurnal'] = dryWeatherDict['Weekday']['Gross Diurnal']
-    dryWeatherDict['Weekend']['Net Diurnal'] = dryWeatherDict['Weekend']['Gross Diurnal']
+    dryWeatherDict['Weekday']['Net Q'] = dryWeatherDict['Weekday']['Gross Q'].copy()
+    dryWeatherDict['Weekend']['Net Q'] = dryWeatherDict['Weekend']['Gross Q'].copy()
+    dryWeatherDict['Weekday']['Net Diurnal'] = dryWeatherDict['Weekday']['Gross Diurnal'].copy()
+    dryWeatherDict['Weekend']['Net Diurnal'] = dryWeatherDict['Weekend']['Gross Diurnal'].copy()
     if not usfmList: # if the list is empty
         # then net and gross are the same
         pass
     else:
         for usfm in usfmList:
-            up_dryWeatherDict = basinDryWeather[usfm]
+            up_dryWeatherDict = basinDryWeather[usfm].copy()
             dryWeatherDict['Weekday']['Net Q'] += (
                 - up_dryWeatherDict['Weekday']['Gross Q'])
             dryWeatherDict['Weekend']['Net Q'] += (
@@ -246,12 +246,12 @@ def netDryQ(basinDryWeather,dfUpstream,fmname):
             dryWeatherDict['Weekend']['Net Diurnal'] += (
                 - up_dryWeatherDict['Weekend']['Gross Diurnal'])
     # create flowrate series for boxplot (gross Q)
-    Qgross_wkd = dryWeatherDict['Weekday']['Net Q']
-    Qgross_wke = dryWeatherDict['Weekend']['Net Q']
+    Qnet_wkd = dryWeatherDict['Weekday']['Net Q']
+    Qnet_wke = dryWeatherDict['Weekend']['Net Q']
     # overall mean
     Qmean = np.array(
-        [Qgross_wkd.mean(), 
-        Qgross_wke.mean()]).mean()
+        [Qnet_wkd.mean(), 
+        Qnet_wke.mean()]).mean()
         # find the groundwater infiltration
     gwi = findGWI(
         m1 = dryWeatherDict['Weekday']['Net Diurnal'],
@@ -289,30 +289,35 @@ OUTPUTS:
     * gageStorms: a dictionary with rain gages as keys to pandas dataframes of storm information for the entire analysis period (dfStorms)
         * dfStorms: a pandas dataframe containing all the information about storms and the gross volume of I&I for that storm
     * stormQ: a dictionary with the storm date as the key containing an array of the positive difference between recorded flow rate and the mean flow rate'''
-def grossII(dfFlow, gagename, dfDaily, dfHourly,fmname,  
-            saveDir = [], gageStorms = {}, dfmeans = [], meanFile = []):
+def grossII(dfFlow, gagename, dfDaily, dfHourly, 
+            fmname, D, dryWeatherDict, saveDir = [],
+            gageStorms = {}, dfmeans = [], meanFile = []):
     # create empty dictionary stormQ
     stormQ = {'Gross' : {}}
     # check to see if this gage has already been processed
     if gagename in gageStorms:
-        dfStorms = gageStorms[gagename]
+        dfStorms = gageStorms[gagename].copy()
     else:
         dfStorms = rainEvents.getStormData(
             dfDaily = dfDaily,
             dfHourly = dfHourly,
             gagename = gagename)
         # update gageStorms
-        gageStorms[gagename] = dfStorms
+        gageStorms[gagename] = dfStorms.copy()
     # check to see if the meanfile is unassigned
     # if the dfmeans i empty
     if not dfmeans:
         if isinstance(meanFile, str):           
             dfmeans = readFiles.readTotalFlow(filename = meanFile)
+        else:
+            raise TypeError()
     elif not meanFile:
         if not dfmeans:
             raise AttributeError()
     # for every storm
     grossVol = []
+    #d/D
+    dD = []
     # conversion from measurement increments to days for volume calculation
     delta = 15.0/24/60 
     for k in range(0, len(dfStorms.index)):
@@ -330,6 +335,10 @@ def grossII(dfFlow, gagename, dfDaily, dfHourly,fmname,
                 hours=dfStorms.loc[tStart, 'Storm Dur']))
         # pull the instantaneous flow data for the storm period
         sFlow = dfFlow.loc[pc:r2, 'Q (MGD)']
+        # find the wet d/D
+        dD.extend(depthOverDiameter(
+            d = dfFlow.loc[pc:r2, 'y (in)'].values,
+            diameter=D))
         # calculate the precompensation amount
         pcAdjust = (
             (sFlow[pc:tStart - dt.timedelta(minutes = 15)]
@@ -348,7 +357,7 @@ def grossII(dfFlow, gagename, dfDaily, dfHourly,fmname,
         stormQ['Gross'][tStart] = grossQ
     # add grossVol to storms
     dfStorms['Gross Vol'] = grossVol
-    #dfStorms = dfStorms[dfStorms['Gross Vol'] > 0]  
+    dryWeatherDict['Overall']['d/D Wet'] = np.array(dD)[~np.isnan(np.array(dD))]
     #saveName = saveDir + '\\' + fmname + '_stormData.csv'
     #dfStorms.to_csv(saveName)
     return(gageStorms,dfStorms,stormQ)
@@ -374,14 +383,14 @@ def netII(fmname, systemGrossQ, dfUpstream, dfDaily,
     # set up empty list
     netVol = []
     # get the gross Q's for this flow monitor
-    stormQ = systemGrossQ[fmname]['Gross']
+    stormQ = systemGrossQ[fmname]['Gross'].copy()
     # get the storm dataframe for this flow monitor
     dfStorms = stormsDict[fmname]
     # conversion from measurement increments to days for volume calculations
     delta = 15.0/24/60 
     # check to see if this gage has already been processed
     # set the default
-    dfStorms['Net Vol'] = dfStorms['Gross Vol']
+    dfStorms['Net Vol'] = dfStorms['Gross Vol'].copy()
     # find the upstream flow monitors
     usfmList = readFiles.findUpstreamFMs(dfUpstream, fmname)
     if not usfmList: # if the list is empty
@@ -402,7 +411,7 @@ def netII(fmname, systemGrossQ, dfUpstream, dfDaily,
                 netQ = stormQ[tStart].copy()
                 for usfm in usfmList:
                     # go find the upstream gross Q's 
-                    up_stormQ = systemGrossQ[usfm]['Gross'][tStart]
+                    up_stormQ = systemGrossQ[usfm]['Gross'][tStart].copy()
                     # subtract the upstream flow rate to get the net flow rate
                     netQ += -up_stormQ
                 stormNetQ[tStart] = netQ
