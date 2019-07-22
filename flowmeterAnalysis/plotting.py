@@ -383,6 +383,169 @@ def cumulativeHist(fmname, data, nbins, saveDir = []):
     if not saveDir:
         plt.show()
     else:
-        saveName = saveDir + '\\' + fmname + '\\' + fmname + '_cumulativeHist.png'
+        saveName = (saveDir + '\\' + fmname + '\\' 
+                    + fmname + '_cumulativeHist.png')
+        plt.savefig(saveName)
+        plt.close(fig)
+
+def uptime(flowDict, col, saveDir = []):
+    percentRunning = []
+    for fm in flowDict:
+        df = flowDict[fm]
+        percentRunning.append((len(flowDict[fm].index) 
+                        - sum(np.isnan(flowDict[fm][col].values)))
+                     /len(flowDict[fm].index))
+    y = range(0,4 * len(percentRunning),4)
+    leftLim = round(0.9 * min(percentRunning),1)
+    xticks = list(np.arange(leftLim,1,0.1))
+    xticks.append(1)
+    fig, ax = plt.subplots(figsize=(2,10.5))
+    ax.plot(percentRunning,
+        y,
+        marker = '.',
+        markersize = 9,
+        linewidth = 0,
+        alpha = 0.7,
+        color = 'xkcd:stormy blue')
+    for xval, yval in zip(percentRunning, y):
+        ax.plot([0, xval],[yval, yval],
+            color = 'xkcd:stormy blue')
+    plt.xticks(
+        ticks = xticks)
+    plt.yticks(
+        ticks = y, 
+        labels = list(flowDict.keys()))
+    ax.xaxis.grid(
+        True, 
+        linestyle = '-',
+        which = 'major',
+        color = 'xkcd:charcoal',
+        alpha = 0.4)
+    ax.yaxis.grid(
+        True, 
+        linestyle = '-',
+        which = 'major',
+        color = 'xkcd:charcoal',
+        alpha = 0.4)
+    ax.set_xlim(left = leftLim)
+    ax.invert_yaxis()
+    ax.spines['bottom'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    plt.tight_layout()
+    if not saveDir:
+        plt.show()
+    else:
+        saveName = (saveDir + '\\' + 'uptime' 
+                    + df.index[0].strftime('%m%d%y') + '-'
+                    + df.index[-1].strftime('%m%d%y') 
+                    + '.png')
+        plt.savefig(saveName)
+        plt.close(fig)
+
+def colorbarSetup(df, colorbarFreq):
+    # get colorbar data together
+    if colorbarFreq == 'monthly':
+        # assign colorbar values
+        cv = np.linspace(
+        df.index[0].month,
+        df.index[-1].month,
+        len(df.index))
+        colorMap = matplotlib.cm.get_cmap(
+            name = 'tab20b',
+            lut = (list(set(df.index.month))[-1]
+                  - list(set(df.index.month))[0] + 1))
+        cbTicks = list(set(df.index.month))
+        title = 'Month'
+    elif colorbarFreq == 'daily':
+        cv = np.linspace(
+        df.index[0].day,
+        df.index[-1].day,
+        len(df.index))
+        colorMap = matplotlib.cm.get_cmap(
+            name = 'tab20b',
+            lut = (list(set(df.index.day))[-1]
+                  - list(set(df.index.day))[0] + 1))
+        cbTicks = list(set(df.index.day))
+        title = 'Day'
+    elif colorbarFreq == 'yearly':
+        cv = np.linspace(
+        df.index[0].year,
+        df.index[-1].year,
+        len(df.index))
+        colorMap = matplotlib.cm.get_cmap(
+            name = 'tab20b',
+            lut = (list(set(df.index.year))[-1]
+                  - list(set(df.index.year))[0] + 1))
+        cbTicks = list(set(df.index.year))
+        title = 'Year'
+    else:
+        raise TypeError()
+    colorBarAtt = {
+        'cv' : cv,
+        'cm' : colorMap,
+        'ticks': cbTicks,
+        'title': title}
+    return(colorBarAtt)
+
+def scattergraph(df, fmname, diameter, colorbarFreq, saveDir = []):
+    # get colorbar data together
+    colorBarAtt = colorbarSetup(df, colorbarFreq)
+    fig, ax = plt.subplots(figsize=(5,4))
+    ax.set_title(fmname)
+    # scatter plot of data
+    plt.scatter(
+        df['v (ft/s)'].values,
+        df['y (in)'].values,
+        marker = '.',
+        alpha = 1,
+        c = colorBarAtt['cv'],
+        cmap = colorBarAtt['cm'])
+    # set up axis limits
+    rightLim = np.ceil(df['v (ft/s)'].max())
+    topLim = np.ceil(max(df['y (in)'].max(), diameter))
+    ax.set_ylim(
+        top = 1.1 * topLim,
+        bottom = 0)
+    ax.set_xlim(
+        left = 0,
+        right = 1.05 * rightLim)
+    # plot colorbar
+    cb = plt.colorbar(
+        ticks = colorBarAtt['ticks'])
+    cb.ax.set_title(colorBarAtt['title'])
+    # plot diameter
+    ax.plot(
+        [0, 1.05 * rightLim],
+        [diameter, diameter],
+        linewidth = 2.0,
+        linestyle = '-',
+        color = 'xkcd:charcoal')
+    ax.text(0.1, diameter + 0.02 * topLim, 
+            s = 'Diameter = ' + str(diameter) + '"')
+    ax.set_xlabel('Velocity (ft/s)')
+    ax.set_ylabel('Depth (in)')
+    ax.xaxis.grid(
+        True, 
+        linestyle = '-',
+        which = 'major',
+        color = 'xkcd:charcoal',
+        alpha = 0.25)
+    ax.yaxis.grid(
+        True, 
+        linestyle = '-',
+        which = 'major',
+        color = 'xkcd:charcoal',
+        alpha = 0.25)
+    plt.tight_layout()
+    if not saveDir:
+        plt.show()
+    else:
+        saveName = (saveDir + '\\' + fmname  + '\\' 
+                    + fmname + 'scattergraph_' 
+                    + df.index[0].strftime('%m%d%y') + '-'
+                    + df.index[-1].strftime('%m%d%y') 
+                    + '.png')
         plt.savefig(saveName)
         plt.close(fig)

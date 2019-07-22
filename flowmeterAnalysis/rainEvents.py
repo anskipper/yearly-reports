@@ -20,7 +20,7 @@ OUTPUTS:
         * the peak is within 80% of the daily total'''
 def identifyStorms(dfDaily, dfHourly, gagename):
     dailyThresh = 0.1 #in
-    peakThresh = 0.03 #in
+    peakThresh = 0.05 #in
     intenseThresh = 0.8 #percent
     rainDates = []
     # if the daily rain total exceeds the daily threshold, add the rain date to the list
@@ -154,7 +154,7 @@ def getStormData(dfDaily, dfHourly, gagename):
             date = date,
             gagename = gagename)
         # the duration has to be at least 1 hour to count
-        if stormInfo['Event']['duration'] > 0:
+        if stormInfo['Event']['duration'] > 0 and stormInfo['Storm']['rain total'] > 0.2:
             tStart.extend([stormInfo['Start']])
             eventDur.extend([stormInfo['Event']['duration']])
             eventRT.extend([stormInfo['Event']['rain total']])

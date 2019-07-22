@@ -138,8 +138,8 @@ print(toc - tic)
 
 # save basinDryWeather, stormsDict, and systemII using pickle
 saveDir = homeDir + '\\2018\\Python Objects\\'
-saveObjs = [basinDryWeather, stormsDict, systemII, gageStorms]
-filenames = ['basinDryWeather','stormsDict','systemII', 'gageStorms']
+saveObjs = [basinDryWeather, stormsDict, systemII, gageStorms, dfFlows]
+filenames = ['basinDryWeather','stormsDict','systemII', 'gageStorms', 'flowDict']
 
 for saveObj, filename in zip(saveObjs,filenames):
     with open(saveDir + filename + '.pickle','wb') as handle:

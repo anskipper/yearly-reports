@@ -15,6 +15,9 @@ upstreamFile = homeDir + '\\FMtoUpstream.csv'
 
 dfUpstream = readFiles.readUpstreamFile(
     filename = upstreamFile)
+dfDetails = readFiles.readFMdetails(
+    filename = fmdataFile
+)
 folders, txt, csv = readFiles.findTextFiles(saveDir)
 
 tic = time.process_time()
@@ -68,6 +71,10 @@ with open(pickleLocation + 'stormsDict.pickle', 'rb') as handle:
     * Event Dur : event duration in hours'''
 with open(pickleLocation + 'gageStorms.pickle', 'rb') as handle:
     gageStorms = pickle.load(handle)
+
+with open(pickleLocation + 'flowDict.pickle', 'rb') as handle:
+    flowDict = pickle.load(handle)
+
 toc = time.process_time()
 print(toc - tic)
 
@@ -77,6 +84,12 @@ for fmname in stormDict:
     if fmname not in folders:
         #make the directory
         makedirs(saveDir + "\\" + fmname)
+    plotting.scattergraph(
+        df = flowDict[fmname], 
+        fmname = fmname, 
+        diameter = dfDetails.loc[fmname,'Diameter'], 
+        colorbarFreq = 'monthly', 
+        saveDir = saveDir)
     plotting.bulletGraph_fms(
         fmname = fmname, 
         basinDryWeather = basinDryWeather, 
